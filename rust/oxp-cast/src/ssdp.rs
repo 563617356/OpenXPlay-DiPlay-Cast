@@ -206,9 +206,9 @@ pub fn discover(config: &CastConfig) -> Result<DiscoveryResult, &'static str> {
         let bind = SocketAddr::V4(SocketAddrV4::new(addr, 0));
         if let Ok(socket) = UdpSocket::bind(bind) {
             let _ = socket.set_multicast_ttl_v4(2);
-            // Binding to the interface address selects the outgoing interface on Linux.
-            #[cfg(unix)]
-            let _ = socket.set_multicast_if_v4(&addr);
+            // Binding the socket to the interface address already selects the
+            // outgoing interface for multicast on Linux, so no explicit
+            // IP_MULTICAST_IF is needed (std has no stable setter for it).
             let _ = socket.set_read_timeout(Some(Duration::from_millis(200)));
             sockets.push(socket);
         }
