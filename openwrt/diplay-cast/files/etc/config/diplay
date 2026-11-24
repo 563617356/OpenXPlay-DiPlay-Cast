@@ -1,0 +1,31 @@
+config diplay 'main'
+	option enabled '1'
+	option connection 'wireless'
+
+# iPhone connection: wireless (Bluetooth + Wi-Fi) or wired (USB Host).
+# For wired, also set usb_vbus_gpio if the board needs GPIO to power the port.
+	option wifi_ssid 'OpenXPlay-Car'
+	option wifi_key 'openxplay'
+	option wifi_country 'CN'
+	option wifi_channel '6'
+	option bluetooth_adapter 'hci0'
+
+# DLNA cast output settings
+	option cast_enabled '1'
+	option cast_width '1280'
+	option cast_height '720'
+	option cast_fps '30'
+	option cast_port '0'
+	option cast_title 'CarPlay'
+	option cast_no_audio '0'
+# optional: pin to a renderer UDN and/or a LAN interface IPv4
+#	option cast_udn 'uuid:xxxx'
+#	option cast_interface '10.77.0.1'
+
+# MFi identity files (place them here yourself, mode 0600)
+	option identity_dir '/etc/diplay/identity'
+	option identity_pk8 '/etc/diplay/identity/identity.pk8'
+	option identity_p7b '/etc/diplay/identity/certificate.p7b'
+
+	option relay_socket '/run/openxplay-relay.sock'
+	option extra_args ''

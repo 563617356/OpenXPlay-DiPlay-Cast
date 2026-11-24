@@ -1,0 +1,135 @@
+# SPDX-FileCopyrightText: 2026 OpenXPlay.org
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Cloud build: test oxp-cast, cross-compile static musl relay for both common
+# OpenWrt soft-router architectures, and package installable .ipk files.
+# No OpenWrt SDK needed — ipk is assembled with ar/tar.
+
+name: Build OpenWrt ipk
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests (oxp-cast)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Test oxp-cast
+        run: cargo test -p oxp-cast
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            target: aarch64-unknown-linux-musl
+          - arch: x86_64
+            target: x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang make curl tar binutils
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component llvm-tools
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: ${{ matrix.arch }}
+
+      - name: Cross-compile static relay (--cast enabled)
+        working-directory: openwrt
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash build-musl.sh
+
+      - name: Verify binary is static
+        run: |
+          BIN=openwrt/diplay-cast/src/openxplay-relay
+          file "$BIN"
+          if ldd "$BIN" 2>&1 | grep -q "not a dynamic executable\|statically linked"; then
+            echo "OK: static binary"
+          elif readelf -l "$BIN" | grep -q INTERP; then
+            echo "ERROR: binary is dynamically linked" >&2
+            exit 1
+          else
+            echo "OK: no ELF interpreter (static)"
+          fi
+
+      - name: Pack ipk
+        working-directory: openwrt
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash pack-ipk.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: diplay-cast-${{ matrix.arch }}
+          path: |
+            openwrt/diplay-cast/src/openxplay-relay
+            openwrt/dist/*.ipk
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: List artifacts
+        run: find artifacts -type f -printf '%p %s bytes\n'
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.ipk
+            artifacts/openxplay-relay
+          generate_release_notes: true
+          body: |
+            ## DiPlay Cast — OpenWrt 无头 CarPlay → DLNA 接收端
+
+            预编译静态二进制 + 可安装 ipk。包含 DLNA cast 输出（`oxp-cast`）。
+
+            | 文件 | 架构 |
+            |---|---|
+            | `diplay-cast_*_aarch64_cortex-a53.ipk` | ARMv8 软路由 (N1/R4S/MT6000) |
+            | `diplay-cast_*_x86_64.ipk` | x86 软路由 |
+
+            **MFi 证书不随包分发**：安装后自行把 `identity.pk8` / `certificate.p7b`
+            放到 `/etc/diplay/identity/`（权限 600）。详见仓库 README。
