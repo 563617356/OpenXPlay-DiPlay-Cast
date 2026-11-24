@@ -93,12 +93,15 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: bash pack-ipk.sh
 
+      - name: Stage uniquely-named binary
+        run: cp openwrt/diplay-cast/src/openxplay-relay openwrt/diplay-cast/src/openxplay-relay-${{ matrix.arch }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: diplay-cast-${{ matrix.arch }}
           path: |
-            openwrt/diplay-cast/src/openxplay-relay
+            openwrt/diplay-cast/src/openxplay-relay-${{ matrix.arch }}
             openwrt/dist/*.ipk
           if-no-files-found: error
 
@@ -118,8 +121,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/*.ipk
-            artifacts/openxplay-relay
+            artifacts/**/*.ipk
+            artifacts/**/openxplay-relay-aarch64
+            artifacts/**/openxplay-relay-x86_64
           generate_release_notes: true
           body: |
             ## DiPlay Cast — OpenWrt 无头 CarPlay → DLNA 接收端
@@ -130,6 +134,7 @@ jobs:
             |---|---|
             | `diplay-cast_*_aarch64_cortex-a53.ipk` | ARMv8 软路由 (N1/R4S/MT6000) |
             | `diplay-cast_*_x86_64.ipk` | x86 软路由 |
+            | `openxplay-relay-aarch64` / `openxplay-relay-x86_64` | 裸静态二进制（手动部署用） |
 
             **MFi 证书不随包分发**：安装后自行把 `identity.pk8` / `certificate.p7b`
             放到 `/etc/diplay/identity/`（权限 600）。详见仓库 README。
