@@ -9,7 +9,7 @@
 #   TARGET=aarch64-unknown-linux-musl bash pack-ipk.sh
 #   TARGET=x86_64-unknown-linux-musl  bash pack-ipk.sh
 #
-# Produces: dist/diplay-cast_0.1.1-1_<opkg-arch>.ipk
+# Produces: dist/diplay-cast_0.1.2-1_<opkg-arch>.ipk
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ case "$TARGET" in
   *) echo "Unsupported target: $TARGET" >&2; exit 1 ;;
 esac
 
-VER=0.1.1
+VER=0.1.2
 REL=1
 IPK="diplay-cast_${VER}-${REL}_${OPKG_ARCH}.ipk"
 
@@ -41,7 +41,7 @@ mkdir -p "$WORK/control" "$WORK/data" "$DIST"
 cat > "$WORK/control/control" <<EOF
 Package: diplay-cast
 Version: ${VER}-${REL}
-Depends: libc, kmod-usb-core, bluez-daemon, wpa-supplicant, hostapd
+Depends: libc, hostapd, wpa-supplicant
 Section: multimedia
 Category: Multimedia
 Architecture: ${OPKG_ARCH}

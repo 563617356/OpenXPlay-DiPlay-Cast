@@ -4,7 +4,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=diplay-cast
-PKG_VERSION:=0.1.1
+PKG_VERSION:=0.1.2
 PKG_RELEASE:=1
 
 # Prebuilt musl static binaries are produced by ../build-musl.sh and placed in
@@ -15,7 +15,6 @@ PKG_HASH:=skip
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_LICENSE:=AGPL-3.0-only
-PKG_LICENSE_FILES:=LICENSE
 PKG_MAINTAINER:=OpenXPlay contributors
 
 include $(INCLUDE_DIR)/package.mk
@@ -24,8 +23,7 @@ define Package/diplay-cast
   SECTION:=multimedia
   CATEGORY:=Multimedia
   TITLE:=Headless CarPlay receiver with DLNA cast output
-  DEPENDS:=+kmod-usb-core +bluez-daemon +wpa-supplicant +hostapd
-  PKGARCH:=all
+  DEPENDS:=+hostapd +wpa-supplicant
 endef
 
 define Package/diplay-cast/description

@@ -39,14 +39,24 @@ openwrt/
 
 ### 云编译（推荐，无需本地工具链）
 
-在本仓库推送 `v*` tag，或在 Actions 页手动触发 `Build OpenWrt ipk` workflow。它会自动：
+在本仓库推送 `v*` tag，或在 Actions 页手动触发 `Build OpenWrt ipk + apk` workflow。它会自动：
 
 1. 运行 `oxp-cast` 单元测试
 2. 交叉编译 aarch64 + x86_64 两个架构的静态 musl 二进制
-3. 各打一个可安装的 `.ipk`
+3. 各打一个 `.ipk`（opkg 固件）和一个 `.apk`（apk 固件）
 4. 在 Release 页发布（tag 触发时）
 
 编译产物在 workflow run 的 Artifacts 里也能下载。
+
+**为什么要两种格式**：OpenWrt/ImmortalWrt 25.12 起把包管理器从 opkg 换成 apk，
+`.ipk`（ar 归档）和 `.apk`（ADB 签名归档，魔数 `ADBd`）互不兼容，装错格式会直接报错。
+`.ipk` 可以用 `ar + tar` 手工打包；`.apk` 必须用对应版本的官方 SDK 编译产出
+（见 `build-apk.sh`），不能手工伪造。按你的固件选：
+
+| 固件 | 包管理器 | 安装包 | 安装命令 |
+|---|---|---|---|
+| 24.10 及更早 | opkg | `.ipk` | `opkg install diplay-cast_*.ipk` |
+| 25.12+ | apk-tools 3.x | `.apk` | `apk add --allow-untrusted diplay-cast-*.apk` |
 
 ### 本地编译
 
@@ -58,16 +68,26 @@ cd openwrt
 TARGET=aarch64-unknown-linux-musl bash build-musl.sh
 # x86 软路由: TARGET=x86_64-unknown-linux-musl bash build-musl.sh
 
-# 2. 打成 ipk（不依赖 OpenWrt SDK，用 ar + tar）
+# 2a. 打成 ipk（不依赖 OpenWrt SDK，用 ar + tar）
 TARGET=aarch64-unknown-linux-musl bash pack-ipk.sh
-# 产物: openwrt/dist/diplay-cast_0.1.0-1_<arch>.ipk
+# 产物: openwrt/dist/diplay-cast_0.1.2-1_<arch>.ipk
+
+# 2b. 打成 apk（需要下载 OpenWrt 25.12.5 SDK，Linux/macOS 主机）
+TARGET=aarch64-unknown-linux-musl bash build-apk.sh
+# 产物: openwrt/dist/diplay-cast-0.1.2-r1_<arch>.apk
 ```
 
 `build-musl.sh` 已处理 ring（加密依赖）所需的 musl sysroot、clang 参数与静态归档器，并支持 aarch64 / x86_64 两个目标。
 
 ## 安装与配置
 
-1. 安装 ipk：`opkg install diplay-cast_0.1.0_all.ipk`
+1. 安装包（按固件选一种，不要混用）：
+   ```sh
+   # 24.10 及更早 (opkg)
+   opkg install diplay-cast_0.1.2-1_<arch>.ipk
+   # 25.12+ (apk)
+   apk add --allow-untrusted diplay-cast-0.1.2-r1_<arch>.apk
+   ```
 2. **放置 MFi 身份**（必须自己做，包里绝不含）：
 
    ```sh
