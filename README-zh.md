@@ -8,8 +8,24 @@
 | --- | --- |
 | `rust/oxp-cast/` | **新增 crate**：DLNA 输出。SSDP 发现 → SOAP AVTransport → HTTP `video/mp2t` 推流。从上游纯 JVM 的 `kotlin/cast` 移植，复用 `oxp-media` 的 MPEG-TS 封装，实现标准 `ProjectionOutput` trait。 |
 | `rust/oxp-bin/src/bin/oxp-relay.rs` | 增加 `--cast` 系列参数，把 cast 输出挂进 relay hub。 |
+| `relay/rust/` | 内置 [OpenXPlay-Relay](https://github.com/OpenXPlay/OpenXPlay-Relay) 的 `direlay-linux`（接收端）：连 iPhone、iAP2/MFi 认证、拉起输出进程。v0.1.1 起随包分发，所有组件都在路由器上。 |
 | `openwrt/` | OpenWrt 打包骨架：procd 服务、UCI 配置、LuCI 页面、musl 交叉编译 + ipk 打包脚本。 |
-| `.github/workflows/build.yml` | **云编译**：测试 oxp-cast、交叉编译 aarch64 + x86_64 静态二进制、打包 ipk、推 `v*` tag 自动发布 Release。 |
+| `.github/workflows/build.yml` | **云编译**：测试 oxp-cast、交叉编译接收端 + 输出端 aarch64/x86_64 静态二进制、打包 ipk、推 `v*` tag 自动发布 Release。 |
+
+## 运行架构（v0.1.1 起）
+
+```
+iPhone ──蓝牙/Wi-Fi──> openxplay-receiver (direlay-linux, 主进程)
+                          │  iAP2 + MFi 认证
+                          │  spawn --oxp-relay=oxp-relay-wrapper
+                          ▼
+                       oxp-relay-wrapper ──注入 --cast──> oxp-relay (输出端)
+                          │  unix socket 传帧
+                          ▼  video/mp2t
+                       车机 DLNA MediaRenderer
+```
+
+`oxp-relay-wrapper` 用 `exec` 保持 PID 与 stdio 管道不变，把 `--cast` 系列参数加在接收端传入的参数前面——不改动上游接收端一行代码。
 
 ## 下载预编译 ipk
 

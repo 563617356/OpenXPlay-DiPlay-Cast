@@ -8,8 +8,9 @@
 | --- | --- |
 | `rust/oxp-cast/` | **New crate**: DLNA cast output. SSDP discovery → SOAP AVTransport → HTTP `video/mp2t` stream. Ported from the upstream pure-JVM `kotlin/cast`, reusing `oxp-media`'s MPEG-TS muxer. Implements the standard `ProjectionOutput` trait. |
 | `rust/oxp-bin/src/bin/oxp-relay.rs` | Added `--cast` family of flags to mount the cast output into the relay hub. |
+| `relay/rust/` | Vendored [OpenXPlay-Relay](https://github.com/OpenXPlay/OpenXPlay-Relay) `direlay-linux`: the receiver that talks to the iPhone (iAP2/MFi) and supervises the output process. Since v0.1.1 it ships in the ipk — everything runs on the router. |
 | `openwrt/` | OpenWrt package skeleton: procd init, UCI config, LuCI page, musl cross-build + ipk pack scripts. |
-| `.github/workflows/build.yml` | **Cloud build**: tests `oxp-cast`, cross-compiles static relay for aarch64 + x86_64, packages `.ipk`, publishes a Release on `v*` tags. |
+| `.github/workflows/build.yml` | **Cloud build**: tests `oxp-cast`, cross-compiles both receiver and output relay for aarch64 + x86_64, packages `.ipk`, publishes a Release on `v*` tags. |
 
 ## Download prebuilt ipk
 
