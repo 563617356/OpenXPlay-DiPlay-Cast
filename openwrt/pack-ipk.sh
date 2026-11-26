@@ -9,7 +9,7 @@
 #   TARGET=aarch64-unknown-linux-musl bash pack-ipk.sh
 #   TARGET=x86_64-unknown-linux-musl  bash pack-ipk.sh
 #
-# Produces: dist/diplay-cast_0.1.0-1_<opkg-arch>.ipk
+# Produces: dist/diplay-cast_0.1.1-1_<opkg-arch>.ipk
 
 set -euo pipefail
 
@@ -28,7 +28,7 @@ case "$TARGET" in
   *) echo "Unsupported target: $TARGET" >&2; exit 1 ;;
 esac
 
-VER=0.1.0
+VER=0.1.1
 REL=1
 IPK="diplay-cast_${VER}-${REL}_${OPKG_ARCH}.ipk"
 
@@ -64,7 +64,13 @@ mkdir -p "$DATA/usr/bin" "$DATA/etc/init.d" "$DATA/etc/config" \
          "$DATA/usr/share/luci/menu.d" \
          "$DATA/www/luci-static/resources/view/diplay"
 
-install -m 0755 "$BIN" "$DATA/usr/bin/openxplay-relay"
+RECEIVER="$PKG_DIR/src/openxplay-receiver"
+[ -x "$RECEIVER" ] || { echo "Receiver binary not found: $RECEIVER — run build-relay-musl.sh first" >&2; exit 1; }
+WRAPPER="$PKG_DIR/files/usr/bin/oxp-relay-wrapper"
+
+install -m 0755 "$BIN" "$DATA/usr/bin/oxp-relay"
+install -m 0755 "$RECEIVER" "$DATA/usr/bin/openxplay-receiver"
+install -m 0755 "$WRAPPER" "$DATA/usr/bin/oxp-relay-wrapper"
 install -m 0755 "$PKG_DIR/files/etc/init.d/diplay-cast" "$DATA/etc/init.d/diplay-cast"
 install -m 0644 "$PKG_DIR/files/etc/config/diplay" "$DATA/etc/config/diplay"
 install -m 0644 "$PKG_DIR/files/usr/share/rpcd/acl.d/luci-app-diplay.json" "$DATA/usr/share/rpcd/acl.d/luci-app-diplay.json"

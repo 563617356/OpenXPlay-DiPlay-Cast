@@ -65,27 +65,33 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: rust
+          workspaces: |
+            rust
+            relay/rust
           key: ${{ matrix.arch }}
 
-      - name: Cross-compile static relay (--cast enabled)
+      - name: Cross-compile static output relay (--cast enabled)
         working-directory: openwrt
         env:
           TARGET: ${{ matrix.target }}
         run: bash build-musl.sh
 
-      - name: Verify binary is static
+      - name: Cross-compile static receiver (direlay-linux)
+        working-directory: openwrt
+        env:
+          TARGET: ${{ matrix.target }}
+        run: bash build-relay-musl.sh
+
+      - name: Verify binaries are static
         run: |
-          BIN=openwrt/diplay-cast/src/openxplay-relay
-          file "$BIN"
-          if ldd "$BIN" 2>&1 | grep -q "not a dynamic executable\|statically linked"; then
-            echo "OK: static binary"
-          elif readelf -l "$BIN" | grep -q INTERP; then
-            echo "ERROR: binary is dynamically linked" >&2
-            exit 1
-          else
-            echo "OK: no ELF interpreter (static)"
-          fi
+          for BIN in openwrt/diplay-cast/src/openxplay-relay openwrt/diplay-cast/src/openxplay-receiver; do
+            file "$BIN"
+            if readelf -l "$BIN" | grep -q INTERP; then
+              echo "ERROR: $BIN is dynamically linked" >&2
+              exit 1
+            fi
+            echo "OK: $BIN is static"
+          done
 
       - name: Pack ipk
         working-directory: openwrt
@@ -93,8 +99,10 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: bash pack-ipk.sh
 
-      - name: Stage uniquely-named binary
-        run: cp openwrt/diplay-cast/src/openxplay-relay openwrt/diplay-cast/src/openxplay-relay-${{ matrix.arch }}
+      - name: Stage uniquely-named binaries
+        run: |
+          cp openwrt/diplay-cast/src/openxplay-relay openwrt/diplay-cast/src/openxplay-relay-${{ matrix.arch }}
+          cp openwrt/diplay-cast/src/openxplay-receiver openwrt/diplay-cast/src/openxplay-receiver-${{ matrix.arch }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -102,6 +110,7 @@ jobs:
           name: diplay-cast-${{ matrix.arch }}
           path: |
             openwrt/diplay-cast/src/openxplay-relay-${{ matrix.arch }}
+            openwrt/diplay-cast/src/openxplay-receiver-${{ matrix.arch }}
             openwrt/dist/*.ipk
           if-no-files-found: error
 
@@ -124,17 +133,21 @@ jobs:
             artifacts/**/*.ipk
             artifacts/**/openxplay-relay-aarch64
             artifacts/**/openxplay-relay-x86_64
+            artifacts/**/openxplay-receiver-aarch64
+            artifacts/**/openxplay-receiver-x86_64
           generate_release_notes: true
           body: |
-            ## DiPlay Cast — OpenWrt 无头 CarPlay → DLNA 接收端
+            ## DiPlay Cast v0.1.1 — OpenWrt 全栈 CarPlay → DLNA
 
-            预编译静态二进制 + 可安装 ipk。包含 DLNA cast 输出（`oxp-cast`）。
+            **v0.1.1 修复**：把 CarPlay 接收端（direlay-linux）也打进 ipk。现在所有组件都在路由器上运行：接收端连 iPhone → 拉起输出端 → DLNA 推给车机。
+
+            ipk 内含三个二进制：`openxplay-receiver`（接收端主进程）、`oxp-relay`（输出端）、`oxp-relay-wrapper`（注入 --cast 参数）。
 
             | 文件 | 架构 |
             |---|---|
             | `diplay-cast_*_aarch64_cortex-a53.ipk` | ARMv8 软路由 (N1/R4S/MT6000) |
             | `diplay-cast_*_x86_64.ipk` | x86 软路由 |
-            | `openxplay-relay-aarch64` / `openxplay-relay-x86_64` | 裸静态二进制（手动部署用） |
+            | `openxplay-relay-*` / `openxplay-receiver-*` | 裸静态二进制（手动部署用） |
 
             **MFi 证书不随包分发**：安装后自行把 `identity.pk8` / `certificate.p7b`
             放到 `/etc/diplay/identity/`（权限 600）。详见仓库 README。

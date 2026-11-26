@@ -4,7 +4,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=diplay-cast
-PKG_VERSION:=0.1.0
+PKG_VERSION:=0.1.1
 PKG_RELEASE:=1
 
 # Prebuilt musl static binaries are produced by ../build-musl.sh and placed in
@@ -51,7 +51,9 @@ endef
 
 define Package/diplay-cast/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openxplay-relay $(1)/usr/bin/openxplay-relay
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openxplay-relay $(1)/usr/bin/oxp-relay
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/openxplay-receiver $(1)/usr/bin/openxplay-receiver
+	$(INSTALL_BIN) ./files/usr/bin/oxp-relay-wrapper $(1)/usr/bin/oxp-relay-wrapper
 
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/etc/init.d/diplay-cast $(1)/etc/init.d/diplay-cast
