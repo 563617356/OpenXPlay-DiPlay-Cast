@@ -8,10 +8,10 @@ PKG_VERSION:=0.1.2
 PKG_RELEASE:=1
 
 # Prebuilt musl static binaries are produced by ../build-musl.sh and placed in
-# ./src/. For source builds against the OpenWrt SDK, see README.md.
-PKG_SOURCE:=diplay-cast-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@LOCAL
-PKG_HASH:=skip
+# ./src/. No PKG_SOURCE: Build/Prepare copies ./src/* directly, so the SDK
+# never tries to download a source tarball (there isn't one for a binary-only
+# package). Defining PKG_SOURCE here would fail with "No download method
+# available" during `make package/diplay-cast/compile`.
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_LICENSE:=AGPL-3.0-only
